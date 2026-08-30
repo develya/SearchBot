@@ -21,4 +21,12 @@ public class DomRiaController : ControllerBase
 
         return Ok(cities);
     }
+
+    [HttpGet("properties/{realtyId}")]
+    public async Task<IActionResult> GetProperty(int realtyId, CancellationToken cancellationToken)
+    {
+        var property = await _domRiaClient.GetPropertyByIdAsync(realtyId, cancellationToken);
+        return Ok(property);
+
+    }
 }

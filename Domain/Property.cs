@@ -11,6 +11,6 @@ public class Property
     public string City { get; set; }
     public string Address { get; set; }
     public int TotalFloors { get; set; }
-    public bool AllowedPet { get; set; }
+    //public bool AllowedPet { get; set; }
     public string Url {get; set;}
 }
