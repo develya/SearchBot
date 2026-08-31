@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPropertyProvider, DomRiaPropertyProvider>();
         services.AddSingleton<DomRiaPropertyMapper>();
         services.AddScoped<PropertySearchService>();
+        services.AddScoped<DomRiaSearchUrlBuilder>();
 
         return services;
     }

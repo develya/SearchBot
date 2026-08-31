@@ -16,7 +16,7 @@ public class DomRiaPropertyProvider : IPropertyProvider
 
     public async Task<IReadOnlyCollection<PropertyDto>> SearchAsync(PropertySearchRequest request, CancellationToken cancellationToken)
     {
-        var properties = await _domRiaClient.GetSearchResultsAsync(request.CityId, cancellationToken);
+        var properties = await _domRiaClient.GetSearchResultsAsync(request, cancellationToken);
 
         return properties.Select(_mapper.Map).ToArray();
     }

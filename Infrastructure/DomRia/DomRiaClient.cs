@@ -14,16 +14,18 @@ public class DomRiaClient
 
     private readonly HttpClient _httpClient;
     private readonly DomRiaOptions _options;
+    private readonly DomRiaSearchUrlBuilder _searchUrlBuilder;
 
-    public DomRiaClient(HttpClient httpClient, IOptions<DomRiaOptions> options)
+    public DomRiaClient(HttpClient httpClient, IOptions<DomRiaOptions> options, DomRiaSearchUrlBuilder searchUrlBuilder)
     {
         _httpClient = httpClient;
         _options = options.Value;
+        _searchUrlBuilder = searchUrlBuilder;
     }
 
-    public async Task<IReadOnlyCollection<DomRiaProperty>> GetSearchResultsAsync(int? cityId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<DomRiaProperty>> GetSearchResultsAsync(PropertySearchRequest request, CancellationToken cancellationToken)
     {
-        var url = $"{_options.BaseUrl}/dom/search" + $"?city_id={cityId}" + $"&api_key={_options.ApiKey}";
+        var url = _searchUrlBuilder.Build(request);
 
         var response = await GetWithRetryAsync(url, cancellationToken);
 
@@ -45,7 +47,7 @@ public class DomRiaClient
 
         foreach (var id in searchResponse.Items.Take(5))
         {
-            var property = await GetPropertyAsync(id, cancellationToken);
+            var property = await GetPropertyByIdAsync(id, cancellationToken);
 
             if (property is null)
             {
@@ -66,24 +68,9 @@ public class DomRiaClient
         return cities ?? [];
     }
     
-    public async Task<DomRiaProperty> GetPropertyByIdAsync(int realtyId, CancellationToken cancellationToken)
+    public async Task<DomRiaProperty?> GetPropertyByIdAsync(int realtyId, CancellationToken cancellationToken)
    {
        var url = $"{_options.BaseUrl}/dom/info/{realtyId}?api_key={_options.ApiKey}";
-
-       var response = await _httpClient.GetAsync(url, cancellationToken);
-
-       var json = await response.Content.ReadAsStringAsync(cancellationToken);
-
-       Console.WriteLine(json);
-
-       var property = System.Text.Json.JsonSerializer.Deserialize<DomRiaProperty>(json);
-
-       return property!;
-   }
-   
-   private async Task<DomRiaProperty?> GetPropertyAsync(int propertyId, CancellationToken cancellationToken)
-   {
-       var url = $"{_options.BaseUrl}/dom/info/{propertyId}" + $"?api_key={_options.ApiKey}";
 
        var response = await GetWithRetryAsync(url, cancellationToken);
 
@@ -94,7 +81,8 @@ public class DomRiaClient
 
        return await response.Content.ReadFromJsonAsync<DomRiaProperty>(cancellationToken);
    }
-
+   
+  
 
    private async Task<HttpResponseMessage?> GetWithRetryAsync(string url, CancellationToken cancellationToken)
    {
