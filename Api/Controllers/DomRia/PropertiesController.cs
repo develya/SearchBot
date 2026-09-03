@@ -24,6 +24,13 @@ namespace Api.Controllers;
 
                 return Ok(properties);
             }
+            catch (InvalidPropertySearchRequestException ex)
+            {
+                return Problem(
+                    title: "Invalid property search request",
+                    detail: ex.Message,
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
             catch (PropertyProviderException ex)
             {
                 var statusCode = ex.UpstreamStatusCode switch

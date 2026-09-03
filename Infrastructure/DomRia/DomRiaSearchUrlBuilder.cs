@@ -21,6 +21,21 @@ public class DomRiaSearchUrlBuilder
             url += $"&characteristic[234][from]={request.MinPrice.Value}";
         }
 
+        if (request.MaxPrice.HasValue)
+        {
+            url += $"&characteristic[234][to]={request.MaxPrice.Value}";
+        }
+        
+        if (request.MinRooms.HasValue)
+        {
+            url += $"&characteristic[209][from]={request.MinRooms.Value}";
+        }
+
+        if (request.MaxRooms.HasValue)
+        {
+            url += $"&characteristic[209][to]={request.MaxRooms.Value}";
+        }
+
         return url;
     }
 }

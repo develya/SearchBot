@@ -9,9 +9,19 @@ public class PropertySearchService
         _propertyProvider = propertyProvider;
     }
 
-    public Task<IReadOnlyCollection<PropertyDto>> SearchAsync(PropertySearchRequest request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<PropertyDto>> SearchAsync(PropertySearchRequest request, CancellationToken cancellationToken)
     {
-        return _propertyProvider.SearchAsync(request, cancellationToken);
+
+        if (request.MinRooms > request.MaxRooms)
+        { 
+            throw new InvalidPropertySearchRequestException("The minimum rooms cannot be greater than the maximum rooms.");
+        }
+
+        if (request.MinPrice > request.MaxPrice)
+        {
+            throw new InvalidPropertySearchRequestException("The minimum price must be less than the maximum price.");
+        }
+        return await _propertyProvider.SearchAsync(request, cancellationToken);
     }
     
 }
