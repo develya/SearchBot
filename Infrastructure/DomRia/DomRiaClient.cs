@@ -9,14 +9,17 @@ namespace Infrastructure.DomRia;
 
 public class DomRiaClient
 {
-    private const int MaxAttempts = 3;
-    private static readonly TimeSpan FallbackRetryDelay = TimeSpan.FromSeconds(2);
+     // private const int MaxAttempts = 3;
+    // private static readonly TimeSpan FallbackRetryDelay = TimeSpan.FromSeconds(2);
 
     private readonly HttpClient _httpClient;
     private readonly DomRiaOptions _options;
     private readonly DomRiaSearchUrlBuilder _searchUrlBuilder;
 
-    public DomRiaClient(HttpClient httpClient, IOptions<DomRiaOptions> options, DomRiaSearchUrlBuilder searchUrlBuilder)
+    public DomRiaClient(
+        HttpClient httpClient,
+        IOptions<DomRiaOptions> options,
+        DomRiaSearchUrlBuilder searchUrlBuilder)
     {
         _httpClient = httpClient;
         _options = options.Value;
@@ -45,7 +48,7 @@ public class DomRiaClient
 
         var properties = new List<DomRiaProperty>(searchResponse.Items.Count);
 
-        foreach (var id in searchResponse.Items.Take(5))
+        foreach (var id in searchResponse.Items.Take(1))
         {
             var property = await GetPropertyByIdAsync(id, cancellationToken);
 
@@ -60,94 +63,141 @@ public class DomRiaClient
         return properties;
     }
 
-    public async Task<IReadOnlyCollection<DomRiaCity>> GetCitiesAsync(int stateId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<DomRiaCity>> GetCitiesAsync(int stateId,CancellationToken cancellationToken)
     {
         var url = $"{_options.BaseUrl}/dom/cities/{stateId}?api_key={_options.ApiKey}&lang_id=4";
-        var cities = await _httpClient.GetFromJsonAsync<List<DomRiaCity>>(url, cancellationToken);
+
+        var cities = await _httpClient.GetFromJsonAsync<List<DomRiaCity>>(
+            url,
+            cancellationToken);
 
         return cities ?? [];
     }
-    
+
     public async Task<DomRiaProperty?> GetPropertyByIdAsync(int realtyId, CancellationToken cancellationToken)
-   {
-       var url = $"{_options.BaseUrl}/dom/info/{realtyId}?api_key={_options.ApiKey}";
+    {
+        var url = $"{_options.BaseUrl}/dom/info/{realtyId}?api_key={_options.ApiKey}";
 
-       var response = await GetWithRetryAsync(url, cancellationToken);
+        var response = await GetWithRetryAsync(url, cancellationToken);
 
-       if (response is null)
-       {
-           return null;
-       }
+        if (response is null)
+        {
+            return null;
+        }
 
-       return await response.Content.ReadFromJsonAsync<DomRiaProperty>(cancellationToken);
-   }
-   
+        return await response.Content.ReadFromJsonAsync<DomRiaProperty>(
+            cancellationToken);
+    }
+
   
+    private async Task<HttpResponseMessage?> GetWithRetryAsync(
+        string url,
+        CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.GetAsync(url, cancellationToken);
 
-   private async Task<HttpResponseMessage?> GetWithRetryAsync(string url, CancellationToken cancellationToken)
-   {
-       for (var attempt = 1; attempt <= MaxAttempts; attempt++)
-       {
-           var response = await _httpClient.GetAsync(url, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return response;
+        }
 
-           if (response.IsSuccessStatusCode)
-           {
-               return response;
-           }
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
 
-           if (response.StatusCode == HttpStatusCode.NotFound)
-           {
-               return null;
-           }
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
-           if (response.StatusCode == HttpStatusCode.TooManyRequests && attempt < MaxAttempts)
-           {
-               await Task.Delay(GetRetryDelay(response, attempt), cancellationToken);
-               continue;
-           }
+        throw BuildUpstreamException(response.StatusCode, body);
+    }
 
-           var body = await response.Content.ReadAsStringAsync(cancellationToken);
-           throw BuildUpstreamException(response.StatusCode, body);
-       }
+   
+    /*
+    private async Task<HttpResponseMessage?> GetWithRetryAsync(
+        string url,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+        {
+            var response = await _httpClient.GetAsync(url, cancellationToken);
 
-       throw new PropertyProviderException(
-           $"DomRia rate limit exceeded after {MaxAttempts} attempts.",
-           (int)HttpStatusCode.TooManyRequests);
-   }
+            if (response.IsSuccessStatusCode)
+            {
+                return response;
+            }
 
-   private static TimeSpan GetRetryDelay(HttpResponseMessage response, int attempt)
-   {
-       var retryAfter = response.Headers.RetryAfter;
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
 
-       if (retryAfter?.Delta is { } delta && delta > TimeSpan.Zero)
-       {
-           return delta;
-       }
+            if (response.StatusCode == HttpStatusCode.TooManyRequests &&
+                attempt < MaxAttempts)
+            {
+                await Task.Delay(
+                    GetRetryDelay(response, attempt),
+                    cancellationToken);
 
-       if (retryAfter?.Date is { } date)
-       {
-           var untilDate = date - DateTimeOffset.UtcNow;
+                continue;
+            }
 
-           if (untilDate > TimeSpan.Zero)
-           {
-               return untilDate;
-           }
-       }
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
-       return FallbackRetryDelay * attempt;
-   }
+            throw BuildUpstreamException(response.StatusCode, body);
+        }
 
-   private static PropertyProviderException BuildUpstreamException(HttpStatusCode statusCode, string body)
-   {
-       var message = statusCode switch
-       {
-           HttpStatusCode.BadRequest => $"DomRia rejected the request as invalid: {body}",
-           HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => $"DomRia rejected our API key: {body}",
-           HttpStatusCode.TooManyRequests => $"DomRia rate limit exceeded: {body}",
-           _ when (int)statusCode >= 500 => $"DomRia is currently unavailable ({(int)statusCode}): {body}",
-           _ => $"DomRia returned an unexpected error ({(int)statusCode}): {body}"
-       };
+        throw new PropertyProviderException(
+            $"DomRia rate limit exceeded after {MaxAttempts} attempts.",
+            (int)HttpStatusCode.TooManyRequests);
+    }
 
-       return new PropertyProviderException(message, (int)statusCode);
-   }
+    private static TimeSpan GetRetryDelay(
+        HttpResponseMessage response,
+        int attempt)
+    {
+        var retryAfter = response.Headers.RetryAfter;
+
+        if (retryAfter?.Delta is { } delta &&
+            delta > TimeSpan.Zero)
+        {
+            return delta;
+        }
+
+        if (retryAfter?.Date is { } date)
+        {
+            var untilDate = date - DateTimeOffset.UtcNow;
+
+            if (untilDate > TimeSpan.Zero)
+            {
+                return untilDate;
+            }
+        }
+
+        return FallbackRetryDelay * attempt;
+    }
+    */
+
+    private static PropertyProviderException BuildUpstreamException(HttpStatusCode statusCode, string body)
+    {
+        var message = statusCode switch
+        {
+            HttpStatusCode.BadRequest =>
+                $"DomRia rejected the request as invalid: {body}",
+
+            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden =>
+                $"DomRia rejected our API key: {body}",
+
+            HttpStatusCode.TooManyRequests =>
+                $"DomRia rate limit exceeded: {body}",
+
+            _ when (int)statusCode >= 500 =>
+                $"DomRia is currently unavailable ({(int)statusCode}): {body}",
+
+            _ =>
+                $"DomRia returned an unexpected error ({(int)statusCode}): {body}"
+        };
+
+        return new PropertyProviderException(message, (int)statusCode);
+    }
+
 }
