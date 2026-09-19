@@ -1,4 +1,4 @@
-﻿namespace Domain;
+namespace Domain;
 
 public class Property
 {
@@ -10,7 +10,9 @@ public class Property
     public string Currency { get; set; }
     public int? Rooms { get; set; }
     public string City { get; set; }
+    public int? CityId { get; set; }
     public string Address { get; set; }
+    public int? Floor { get; set; }
     public int? TotalFloors { get; set; }
     //public bool AllowedPet { get; set; }
     public string Url {get; set;}

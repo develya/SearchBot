@@ -17,7 +17,7 @@ public class PropertyConfiguration : IEntityTypeConfiguration<Property>
             .IsUnique();
         
         builder.Property(property => property.Title)
-            .IsRequired()
+            .IsRequired(false)
             .HasMaxLength(500);
 
         builder.Property(property => property.Description)
@@ -33,6 +33,12 @@ public class PropertyConfiguration : IEntityTypeConfiguration<Property>
         builder.Property(property => property.City)
             .IsRequired()
             .HasMaxLength(100);
+
+        builder.Property(property => property.CityId);
+
+        builder.HasIndex(property => property.CityId);
+        
+        builder.Property(property => property.Floor);
 
         builder.Property(property => property.Address)
             .HasMaxLength(300);

@@ -1,6 +1,9 @@
 using Application;
+using Application.Interfaces;
+using Infrastructure.BackgroundServices;
 using Infrastructure.DomRia;
 using Infrastructure.DomRia.Mapping;
+using Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,6 +25,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<DomRiaPropertyMapper>();
         services.AddScoped<PropertySearchService>();
         services.AddScoped<DomRiaSearchUrlBuilder>();
+        services.AddScoped<IPropertySyncService, PropertySyncService>();
+        services.AddHostedService<PropertySyncBackgroundService>();
 
         return services;
     }

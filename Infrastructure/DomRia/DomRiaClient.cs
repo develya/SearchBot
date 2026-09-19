@@ -16,17 +16,14 @@ public class DomRiaClient
     private readonly DomRiaOptions _options;
     private readonly DomRiaSearchUrlBuilder _searchUrlBuilder;
 
-    public DomRiaClient(
-        HttpClient httpClient,
-        IOptions<DomRiaOptions> options,
-        DomRiaSearchUrlBuilder searchUrlBuilder)
+    public DomRiaClient(HttpClient httpClient, IOptions<DomRiaOptions> options, DomRiaSearchUrlBuilder searchUrlBuilder)
     {
         _httpClient = httpClient;
         _options = options.Value;
         _searchUrlBuilder = searchUrlBuilder;
     }
 
-    public async Task<IReadOnlyCollection<DomRiaProperty>> GetSearchResultsAsync(PropertySearchRequest request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<int>> GetSearchIdsAsync(PropertySearchRequest request, CancellationToken cancellationToken)
     {
         var url = _searchUrlBuilder.Build(request);
 
@@ -46,21 +43,7 @@ public class DomRiaClient
             return [];
         }
 
-        var properties = new List<DomRiaProperty>(searchResponse.Items.Count);
-
-        foreach (var id in searchResponse.Items.Take(1))
-        {
-            var property = await GetPropertyByIdAsync(id, cancellationToken);
-
-            if (property is null)
-            {
-                continue;
-            }
-
-            properties.Add(property);
-        }
-
-        return properties;
+        return searchResponse.Items;
     }
 
     public async Task<IReadOnlyCollection<DomRiaCity>> GetCitiesAsync(int stateId,CancellationToken cancellationToken)

@@ -1,3 +1,4 @@
+using Api;
 using Application.Interfaces;
 using Infrastructure.DomRia.Mapping;
 using Infrastructure.Extensions;
@@ -11,12 +12,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
-builder.Services.AddScoped<DomRiaPropertyEntityMapper>();
+
+ServicesRegistration.RegisterRepositories(builder.Services);
+ServicesRegistration.RegisterServices(builder.Services);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
+
+app.UseMiddleware<Api.Middlewares.ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

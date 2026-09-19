@@ -21,6 +21,12 @@ public class PropertySearchService
         {
             throw new InvalidPropertySearchRequestException("The minimum price must be less than the maximum price.");
         }
+        
+        if (request.MinFloor > request.MaxFloor)
+        {
+            throw new InvalidPropertySearchRequestException("The minimum floor cannot be greater than the maximum floor.");
+        }
+        
         return await _propertyProvider.SearchAsync(request, cancellationToken);
     }
     

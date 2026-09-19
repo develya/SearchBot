@@ -12,6 +12,7 @@ public class PropertyDto
     public string? City { get; set; }
     public string? Street { get; set; }
     public string? BuildingNumber { get; set; }
+    public int? Floor { get; set; } 
     public int TotalFloors { get; set; }
     public string? Url { get; set; }
 }
