@@ -1,4 +1,5 @@
 using Application;
+using Application.Common.Specifications;
 using Application.Interfaces;
 using Domain;
 using Microsoft.EntityFrameworkCore;
@@ -37,46 +38,13 @@ public class PropertyRepository : IPropertyRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<Property>> SearchAsync(PropertySearchRequest request, int limit, CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<Property>> SearchAsync(ISpecification<Property> specification, int limit, CancellationToken cancellationToken)
     {
         var query = _dbContext.Properties.AsNoTracking().AsQueryable();
-
-        if (request.CityId.HasValue)
-        {
-            query = query.Where(property => property.CityId == request.CityId.Value);
-        }
-
-        if (request.MinPrice.HasValue)
-        {
-            query = query.Where(property => property.Price >= request.MinPrice.Value);
-        }
-
-        if (request.MaxPrice.HasValue)
-        {
-            query = query.Where(property => property.Price <= request.MaxPrice.Value);
-        }
-
-        if (request.MinRooms.HasValue)
-        {
-            query = query.Where(property => property.Rooms >= request.MinRooms.Value);
-        }
-
-        if (request.MaxRooms.HasValue)
-        {
-            query = query.Where(property => property.Rooms <= request.MaxRooms.Value);
-        }
         
-        if (request.MinFloor.HasValue)
-        {
-            query = query.Where(property => property.Floor >= request.MinFloor.Value);
-        }
-
-        if (request.MaxFloor.HasValue)
-        {
-            query = query.Where(property => property.Floor <= request.MaxFloor.Value);
-        }
-
         return await query
+            .AsNoTracking()
+            .Where(specification.ToExpression())
             .OrderByDescending(property => property.ExternalId)
             .Take(limit)
             .ToListAsync(cancellationToken);

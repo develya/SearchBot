@@ -1,5 +1,6 @@
 using Application;
 using Application.Interfaces;
+using Application.Specifications;
 using Infrastructure.DomRia.Mapping;
 
 namespace Infrastructure.DomRia;
@@ -23,7 +24,10 @@ public class DomRiaPropertyProvider : IPropertyProvider
 
     public async Task<IReadOnlyCollection<PropertyDto>> SearchAsync(PropertySearchRequest request, CancellationToken cancellationToken)
     {
-        var localProperties = (await _propertyRepository.SearchAsync(request, TargetCount, cancellationToken)).ToList();
+        var specification = new PropertySearchSpecification(request);
+        
+        var localProperties = (await _propertyRepository.SearchAsync(specification, TargetCount, cancellationToken)).ToList();
+        
 
         if (localProperties.Count > 0)
         {

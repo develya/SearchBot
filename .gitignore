@@ -3,6 +3,8 @@
 *.user
 *.suo
 
+.claude/
+
 # Rider / IntelliJ
 .idea/
 
@@ -14,6 +16,7 @@ obj/
 *.user
 *.userosscache
 *.sln.docstates
+
 
 # NuGet
 *.nupkg
